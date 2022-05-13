@@ -28,8 +28,8 @@ def get_last_id():
 def update_text(conn, text):
     """Update the text at a specified position in the table Notebook.
 
-    :param conn:
-    :param text:
+    :param conn (sqlite3.Connection):
+    :param text (str):
     :return: None
     """
     sql = ''' UPDATE Notebook SET TEXT = ?, DAY_CREATED = ?  WHERE ID = ?'''
@@ -40,8 +40,8 @@ def update_text(conn, text):
 def update_tag(conn, tag):
     """Update the tag at a specified position in the table Notebook.
 
-    :param conn:
-    :param tag:
+    :param conn (sqlite3.Connection):
+    :param tag (str):
     :return: None
     """
     sql = ''' UPDATE Notebook SET TAG = ?, DAY_CREATED = ?  WHERE ID = ?'''
@@ -71,31 +71,31 @@ class Notebook():
 
         Methods:
 
-            add_note(text, tags=''):
+            Addition(text, tags=''):
                 Add a note to notebook.
 
-            addition():
+            Note_Addition():
                 Name the text and tag for note.
 
-            search_note(filter):
+            Searching(filter):
                 Choose a note to search.
 
-            searching():
+            Note_Searching():
                 Search for notes and return found notes.
 
-            modification():
+            Modification():
                 Choose a note to rename and type new text, new tag.
 
-            modify_tag(note_id, tags):
+            Tag_Modification(note_id, tag):
                 Rename tag for note.
 
-            modify_text(note_id, text):
+            Text_Modification(note_id, text):
                 Rename text for note.
 
-            show_note(note_searched=None):
+            Note_Display(note_searched=None):
                 Display a single note or all the notes contained in the notebook.
 
-            display_menu():
+            Menu_Display():
                 Display notebook menu options.
 
             quit():
@@ -115,7 +115,7 @@ class Notebook():
                         ("2", "Search notes", self.Note_Searching),
                         ("3", "Add note", self.Note_Addition),
                         ("4", "Modify note", self.Modification),
-                        ("5", "Quit", self.quit)
+                        ("5", "Quit", self.Quit)
                         ]
         self.all_note = self.list_notes
 
@@ -169,8 +169,8 @@ class Notebook():
         :param filter (str): The ID or the tag or the text has been selected for searching.
         :return: All the information of the note has been searched.
         """
-        res = cursor.execute("select * from Notebook where TEXT=? or TAG=?", (filt, filt,)).fetchall()
-        return res
+        note_searched = cursor.execute("select * from Notebook where TEXT=? or TAG=?", (filt, filt,)).fetchall()
+        return note_searched
 
     def Modification(self):
         """Choose a note to rename.
@@ -254,7 +254,7 @@ Last modified on: {note[3]}
         for option in self.options:
             print(option[0] + ". " + option[1])
 
-    def quit(self):
+    def Quit(self):
         """Quit the program.
 
         :param: None
@@ -262,8 +262,7 @@ Last modified on: {note[3]}
         """
         print("Thank you for using your Notebook today.")
         sys.exit(0)
-
-
+        connection.close()
 
 if __name__ == "__main__":
     DBCreate()
