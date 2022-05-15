@@ -1,8 +1,8 @@
 import sys
 import datetime
 import time
-from Exceptions_hw2 import CustomException
-endline = "_"*80
+import MyExceptions
+ENDLINE = "_" * 80
 
 class Note():
     def __init__(self, text, tag, day, id):
@@ -15,55 +15,71 @@ class Notebook():
     def __init__(self):
         self.last_id = 1
         self.list_notes = []
-        self.options = [("1", "Show all notes", self.Note_Display),
-                        ("2", "Search notes", self.Note_Searching),
-                        ("3", "Add note", self.Note_Addition),
-                        ("4", "Modify note", self.Modification),
-                        ("5", "Quit", self.quit)]
+        self.options = [("1", "Show all notes", self.display_note),
+                        ("2", "Search notes", self.search_note),
+                        ("3", "Add note", self.add_note),
+                        ("4", "Modify note", self.modifiy_note),
+                        ("5", "Quit", self.quit_notebook)]
         self.all_note = self.list_notes
 
-    def Addition(self, text, tags=''):
+    def adding(self, text, tags=''):
         self.list_notes.append(Note(text,
                                     tags,
                                     datetime.datetime.now(),
                                     self.last_id))
         self.last_id += 1
 
-    def Note_Addition(self):
+    def add_note(self):
         text = input("Enter a text: ")
         tags = input("Enter tag: ")
-        self.Addition(text, tags)
+        self.adding(text, tags)
         print("Your note has been added on", time.ctime())
 
-    def Note_Searching(self):
+    def search_note(self):
         filter = input("Search for: ")
-        list_notes = self.Searching(filter)
-        self.Note_Display(list_notes)
+        list_notes = self.searching(filter)
+        self.display_note(list_notes)
 
-    def Searching(self, filter):
+    def searching(self, filter):
         return [note for note in self.list_notes
                 if filter in note.text
                 or filter in note.tag]
 
-    def Modification(self):
-        id = input("Enter a note id: ")
-        if not id.isdigit() or int(id) >= self.last_id:
-            raise CustomException.InvalidID()
+    def modifiy_note(self):
+        while True:
+            try:
+                id = input("Enter a note id: ")
+                if not id.isdigit() or int(id) >= self.last_id or int(id) < 1:
+                    raise MyExceptions.InvalidID
+                break
+            except MyExceptions.InvalidID:
+                print("Invalid ID, you've entered the ID bigger than the amount of notes or the ID doesn't exist.")
 
         for note in self.list_notes:
             if not note.id == int(id): continue
             old_text = note.text
             old_tag = note.tag
 
-        text = input("Enter a text: ")
-        if text == old_text: raise CustomException.InvalidText()
-        tag = input("Enter tags: ")
-        if tag == old_tag: raise CustomException.InvalidTag()
+        while True:
+            try:
+                text = input("Enter a text: ")
+                if text == old_text: raise MyExceptions.InvalidText
+                break
+            except MyExceptions.InvalidText:
+                print("You entered an old text, please enter a new text.")
 
-        if text: self.Text_Modification(id, text)
-        if tag: self.Tag_Modification(id, tag)
+        while True:
+            try:
+                tag = input("Enter tag: ")
+                if tag == old_tag: raise MyExceptions.InvalidTag
+                break
+            except MyExceptions.InvalidTag:
+                print("You entered an old tag, please enter a new tag.")
 
-    def Tag_Modification(self, note_id, tag):
+        if text: self.modify_text(id, text)
+        if tag: self.modify_tag(id, tag)
+
+    def modify_tag(self, note_id, tag):
         for note in self.list_notes:
             if not note.id == int(note_id): continue
 
@@ -71,7 +87,7 @@ class Notebook():
             note.day = datetime.datetime.now()
             break
 
-    def Text_Modification(self, note_id, text):
+    def modify_text(self, note_id, text):
         for note in self.list_notes:
             if not note.id == int(note_id): continue
 
@@ -79,39 +95,44 @@ class Notebook():
             note.day = datetime.datetime.now()
             break
 
-    def Note_Display(self, note_searched=None):
+    def display_note(self, note_searched=None):
         if not note_searched: note_searched = self.all_note
         note_searched = sorted(note_searched, key=lambda note: note.day)
         for note in note_searched:
             print(
 f"""Note id: {note.id}
-Note tags: {note.tag}
+Note tag: {note.tag}
 Note text: {note.text}
 Last modified on: {note.day.strftime('%X, %A, %x')}
 """)
 
-    def Menu_Display(self):
-        print(endline)
+    def display_menu(self):
+        print(ENDLINE)
         print("Notes menu:")
         for option in self.options:
             print(option[0] + ". " + option[1])
 
-    def quit(self):
+    def quit_notebook(self):
         print("Thank you for using your Notebook today.")
         sys.exit(0)
+
 
 if __name__ == "__main__":
     Notebook_1 = Notebook()
     while True:
-        Notebook_1.Menu_Display()
+        Notebook_1.display_menu()
         option = input("Enter an option: ")
         action = None
         for choice in Notebook_1.options:
             if option == choice[0]: action = choice[2]
 
-        if action:
-            print(endline)
-            action()
-        else:
-            raise CustomException.InvalidChoice(option)
+        try:
+            if action:
+                print(ENDLINE)
+                action()
+            else:
+                raise MyExceptions.InvalidChoice
+        except MyExceptions.InvalidChoice:
+            print(f"'{option}' is not a valid choice")
+
 
