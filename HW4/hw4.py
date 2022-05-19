@@ -1,55 +1,23 @@
 import sys
-import datetime
 import time
-import sqlite3
-from Exceptions import CustomException
-endline = "_"*80
+import csv
+import Exceptions
 
-def DBCreate():
-    """Create a database connection to the SQLite database.
-
-    :param: None
-    :return: None
-    """
-    global connection, cursor
-    connection = sqlite3.connect("NotebookData.db")
-    cursor = connection.cursor()
-    cursor.execute("create table if not exists Notebook (ID integer, TEXT text, TAG text, DAY_CREATED)")
+ENDLINE = "_" * 80
+open("notebook_data.csv", "a")
 
 def get_last_id():
     """Get the ID of the last note added to the table Notebook.
 
     :param: None
-    ":return" None
+    :return None
     """
-    record = cursor.execute("SELECT ID FROM Notebook ORDER BY ID DESC LIMIT 1").fetchone()
-    return 1 if record == None else record[0]+1
+    notebook_file = open("notebook_data.csv", "r")
+    reader = csv.reader(notebook_file)
 
-def update_text(conn, text):
-    """Update the text at a specified position in the table Notebook.
+    return sum(1 for row in reader) + 1
 
-    :param conn (sqlite3.Connection):
-    :param text (str):
-    :return: None
-    """
-    sql = ''' UPDATE Notebook SET TEXT = ?, DAY_CREATED = ?  WHERE ID = ?'''
-    cur = conn.cursor()
-    cur.execute(sql, text)
-    conn.commit()
-
-def update_tag(conn, tag):
-    """Update the tag at a specified position in the table Notebook.
-
-    :param conn (sqlite3.Connection):
-    :param tag (str):
-    :return: None
-    """
-    sql = ''' UPDATE Notebook SET TAG = ?, DAY_CREATED = ?  WHERE ID = ?'''
-    cur = conn.cursor()
-    cur.execute(sql, tag)
-    conn.commit()
-
-class Note():
+class Note:
     """Class helps you create a single note."""
     def __init__(self, text, tag, day, id):
         """Inits NOTE.
@@ -64,82 +32,33 @@ class Note():
         self.day = day
         self.id = id
 
-class Notebook():
+class Notebook:
     """Class contains all the notes.
 
-        Create a menu of options for queries with notebook.
-
-        Methods:
-
-            Addition(text, tags=''):
-                Add a note to notebook.
-
-            Note_Addition():
-                Name the text and tag for note.
-
-            Searching(filter):
-                Choose a note to search.
-
-            Note_Searching():
-                Search for notes and return found notes.
-
-            Modification():
-                Choose a note to rename and type new text, new tag.
-
-            Tag_Modification(note_id, tag):
-                Rename tag for note.
-
-            Text_Modification(note_id, text):
-                Rename text for note.
-
-            Note_Display(note_searched=None):
-                Display a single note or all the notes contained in the notebook.
-
-            Menu_Display():
-                Display notebook menu options.
-
-            quit():
-                Exit the program.
-        """
+    Create a menu of options for queries with notebook.
+    """
     def __init__(self):
         """Inits notebook.
 
         :param last_id (int): the ID for the newly added note.
-        :param list_notes (str): the List contains all the note added.
         :param options (list): the menu of the notebook.
-        :param all_note (list): all notes have been added before.
+        :param ID (int): ID of note
+        :param TEXT (int): Text of note
+        :param TAG (int): Tag of note
+        :param DATE (time): Last date modified note
         """
         self.last_id = get_last_id()
-        self.list_notes = []
-        self.options = [("1", "Show all notes", self.Note_Display),
-                        ("2", "Search notes", self.Note_Searching),
-                        ("3", "Add note", self.Note_Addition),
-                        ("4", "Modify note", self.Modification),
-                        ("5", "Quit", self.Quit)
-                        ]
-        self.all_note = self.list_notes
+        self.options = [("1", "Show all notes", self.display_note),
+                        ("2", "Search notes", self.search_note),
+                        ("3", "Add note", self.add_note),
+                        ("4", "Modify note", self.modify_note),
+                        ("5", "Quit", self.quit_notebook)]
+        self.ID   = 0
+        self.TEXT = 1
+        self.TAG  = 2
+        self.DATE = 3
 
-    def Addition(self, text, tags=''):
-        """Add a note to notebook.
-
-        :param text (str): text for new note.
-        :param tags (str): tag for new note (default is None).
-        :return: None.
-        """
-        self.list_notes.append(Note(text,
-                                    tags,
-                                    datetime.datetime.now(),
-                                    self.last_id
-                                    ))
-        cursor.executemany("INSERT INTO Notebook VALUES (?,?,?,?)", [(self.last_id,
-                                                                  text,
-                                                                  tags,
-                                                                  time.ctime()
-                                                                  )])
-        connection.commit()
-        self.last_id += 1
-
-    def Note_Addition(self):
+    def add_note(self):
         """Name the text and tag for note.
 
         Input the text and tag for new note, then print out the time added note.
@@ -147,114 +66,188 @@ class Notebook():
         :return: None.
         """
         text = input("Enter a text: ")
-        tags = input("Enter tag: ")
-        self.Addition(text, tags)
+        tag = input("Enter tag: ")
+
+        self.update_notebook(text, tag)
+
         print("Your note has been added on", time.ctime())
 
-    def Note_Searching(self):
+    def update_notebook(self, text, tag=''):
+        """Add a note to notebook.
+
+        :param text (str): text for new note.
+        :param tag (str): tag for new note (default is None).
+        :return: None.
+        """
+        with open('notebook_data.csv', mode='a', newline='') as file:
+            writer = csv.writer(file)
+            writer.writerow([self.last_id, text, tag, time.ctime()])
+
+        self.last_id += 1
+
+    def search_note(self):
         """Choose a note to search.
 
         Input the ID or text or tag of note you want to search,
-        then call the function `seaching` to search for the selected note.
+        then call the function `search_in_notebook` to search for the selected note.
         :param: None.
         :return: None.
         """
-        filter = input("Search for: ")
-        list_notes = self.Searching(filter)
-        self.Note_Display(list_notes)
+        filt = input("Search for: ")
+        temp_notebook = self.search_in_notebook(filt)
+        self.display_note(temp_notebook)
 
-    def Searching(self, filt):
+    def search_in_notebook(self, filt):
         """Search for notes and return found notes.
 
-        :param filter (str): The ID or the tag or the text has been selected for searching.
+        :param filt (str): The ID or the tag or the text has been selected for searching.
         :return: All the information of the note has been searched.
         """
-        note_searched = cursor.execute("select * from Notebook where TEXT=? or TAG=?", (filt, filt,)).fetchall()
-        return note_searched
+        temp_notebook = []
 
-    def Modification(self):
+        read_file = open("notebook_data.csv", "r")
+        notebook = csv.reader(read_file)
+
+        for note in notebook:
+            if note[self.TEXT] == filt or note[self.TAG] == filt:
+                temp_notebook.append(note)
+
+        return temp_notebook
+
+    def modify_note(self):
         """Choose a note to rename.
 
         Choose a new name to rename or not type anything to keep the old name.
-        Input the note ID for modify.
+        Input the note ID for modifying.
         Input new text for note.
         Input new tag for note.
         :param: None.
         :return: None.
         """
-        id = input("Enter a note id: ")
-        if not id.isdigit() or int(id) >= self.last_id:
-            raise CustomException.InvalidID()
+        temp_notebook = []
 
-        old_text = cursor.execute("SELECT TEXT from Notebook WHERE ID = ?", id).fetchone()
-        old_text = old_text[0]
+        read_file = open("notebook_data.csv", "r")
+        notebook = csv.reader(read_file)
 
-        old_tag = cursor.execute("SELECT TAG from Notebook WHERE ID = ?", id).fetchone()
-        old_tag = old_tag[0]
+        for note in notebook:
+            temp_notebook.append(note)
 
-        text = input("Enter a text: ")
-        if text == old_text: raise CustomException.InvalidText()
-        tag = input("Enter tags: ")
-        if tag == old_tag: raise CustomException.InvalidTag()
+        while True:
+            try:
+                id = input("Enter a note id: ")
+                if not id.isdigit() or int(id) >= self.last_id or int(id) < 1:
+                    raise Exceptions.InvalidID
+                break
 
-        if text: self.Text_Modification(int(id), text)
-        if tag: self.Tag_Modification(int(id), tag)
+            except Exceptions.InvalidID:
+                print("Invalid ID, you've entered the ID bigger than the amount of notes or the ID doesn't exist.")
 
-    def Tag_Modification(self, note_id, tag):
-        """Rename tag for note.
+        for note in temp_notebook:
+            if not note[self.ID] == id: continue
+            old_text = note[self.TEXT]
+            old_tag = note[self.TAG]
 
-        :param note_id (int): The ID of the note need rename tag.
-        :param tags (str): Name of the new tag.
-        :return: None.
-        """
-        update_tag(connection, (tag, datetime.datetime.now(), note_id))
+        while True:
+            try:
+                text = input("Enter a text: ")
+                if text == old_text: raise Exceptions.InvalidText
+                break
 
-    def Text_Modification(self, note_id, text):
+            except Exceptions.InvalidText:
+                print("You entered an old text, please enter a new text.")
+
+        while True:
+            try:
+                tag = input("Enter tag: ")
+                if tag == old_tag: raise Exceptions.InvalidTag
+                break
+
+            except Exceptions.InvalidTag:
+                print("You entered an old tag, please enter a new tag.")
+
+        if text: self.modify_text(id, text)
+        if tag: self.modify_tag(id, tag)
+
+
+    def modify_text(self, id, text):
         """Rename text for note.
 
         :param note_id (int): The ID of the note need rename text.
         :param text (str): Name of the new text
         :return: None.
         """
-        update_text(connection, (text, datetime.datetime.now(), note_id))
+        temp_notebook = []
 
-    def Note_Display(self, note_searched=None):
+        read_file = open("notebook_data.csv", "r")
+        notebook = csv.reader(read_file)
+
+        for row in notebook:
+            if row[self.ID] == id:
+                row[self.TEXT] = text
+            temp_notebook.append(row)
+
+        write_file = open("notebook_data.csv", "w", newline='')
+        notebook = csv.writer(write_file)
+        notebook.writerows(temp_notebook)
+
+    def modify_tag(self, id, tag):
+        """Rename text for note.
+
+        :param note_id (int): The ID of the note need rename text.
+        :param text (str): Name of the new text
+        :return: None.
+        """
+        temp_notebook = []
+
+        read_file = open("notebook_data.csv", "r")
+        notebook = csv.reader(read_file)
+
+        for row in notebook:
+            if row[self.ID] == id:
+                row[self.TAG] = tag
+            temp_notebook.append(row)
+
+        write_file = open("notebook_data.csv", "w", newline='')
+        notebook = csv.writer(write_file)
+        notebook.writerows(temp_notebook)
+
+    def display_note(self, temp_notebook=None):
         """Display a single note or all the notes contained in the notebook.
 
         If no particular note is selected, show all notes.
-        :param note_searched (list): Note want to show (default is None).
+        :param temp_notebook (list): Note want to show (default is None).
         :return: None.
         """
-        if not note_searched:
-            for note in cursor.execute("SELECT * FROM Notebook"):
-                print(
-f"""Note ID: {note[0]}
-Note tags: {note[1]}
-Note text: {note[2]}
-Last modified on: {note[3]}
-""")
+
+        if not temp_notebook:
+            notebook_file = open("notebook_data.csv", "r")
+            reader = csv.reader(notebook_file)
+            for note in reader:
+                print("Note ID:", note[self.ID], "\n"
+                      "Note tag:", note[self.TEXT], "\n"
+                      "Note text:", note[self.TAG], "\n"
+                      "Last modified on:", note[self.DATE], "\n")
 
         else:
-            for note in note_searched:
-                print(
-f"""Note ID: {note[0]}
-Note tags: {note[1]}
-Note text: {note[2]}
-Last modified on: {note[3]}
-""")
+            for note in temp_notebook:
+                print("Note ID:", note[self.ID], "\n"
+                      "Note tag:", note[self.TEXT], "\n"
+                      "Note text:", note[self.TAG], "\n"
+                      "Last modified on:", note[self.DATE], "\n")
 
-    def Menu_Display(self):
+    def display_menu(self):
         """Display notebook menu options.
 
         :param: None
         :return: None
         """
-        print(endline)
+        print(ENDLINE)
         print("Notes menu:")
+
         for option in self.options:
             print(option[0] + ". " + option[1])
 
-    def Quit(self):
+    def quit_notebook(self):
         """Quit the program.
 
         :param: None
@@ -262,22 +255,25 @@ Last modified on: {note[3]}
         """
         print("Thank you for using your Notebook today.")
         sys.exit(0)
-        connection.close()
 
 if __name__ == "__main__":
-    DBCreate()
+
     Notebook_1 = Notebook()
 
     while True:
-        Notebook_1.Menu_Display()
+        Notebook_1.display_menu()
         option = input("Enter an option: ")
         action = None
+
         for choice in Notebook_1.options:
             if option == choice[0]: action = choice[2]
 
-        if action:
-            print(endline)
-            action()
-        else:
-            raise CustomException.InvalidChoice(option)
+        try:
+            if action:
+                print(ENDLINE)
+                action()
+            else:
+                raise Exceptions.InvalidChoice
 
+        except Exceptions.InvalidChoice:
+            print(f"'{option}' is not a valid choice")
