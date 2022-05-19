@@ -61,6 +61,7 @@ class Notebook:
 
         for note in self.list_notes:
             if not note.id == int(id): continue
+                
             old_text = note.text
             old_tag = note.tag
 
