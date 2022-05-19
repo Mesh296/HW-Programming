@@ -79,8 +79,8 @@ class Notebook:
         :param tag (str): tag for new note (default is None).
         :return: None.
         """
-        with open('notebook_data.csv', mode='a', newline='') as read_file:
-            writer = csv.writer(read_file)
+        with open('notebook_data.csv', mode='a', newline='') as file:
+            writer = csv.writer(file)
             writer.writerow([self.last_id, text, tag, time.ctime()])
 
         self.last_id += 1
