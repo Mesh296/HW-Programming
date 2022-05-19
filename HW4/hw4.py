@@ -12,8 +12,8 @@ def get_last_id():
     :param: None
     :return None
     """
-    notebook_file = open("notebook_data.csv", "r")
-    reader = csv.reader(notebook_file)
+    read_file = open("notebook_data.csv", "r")
+    reader = csv.reader(read_file)
 
     return sum(1 for row in reader) + 1
 
@@ -79,8 +79,8 @@ class Notebook:
         :param tag (str): tag for new note (default is None).
         :return: None.
         """
-        with open('notebook_data.csv', mode='a', newline='') as file:
-            writer = csv.writer(file)
+        with open('notebook_data.csv', mode='a', newline='') as read_file:
+            writer = csv.writer(read_file)
             writer.writerow([self.last_id, text, tag, time.ctime()])
 
         self.last_id += 1
